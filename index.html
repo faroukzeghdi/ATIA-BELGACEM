@@ -1,5 +1,7 @@
 
 
+
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -99,7 +101,7 @@
         <input id="loginPassword" type="password" autocomplete="current-password" required placeholder="••••••••">
         <button type="submit" class="btn primary wide">تسجيل الدخول</button>
       </form>
-      <div class="login-note">الإصدار 1.2.0 — تصميم: زغدي فاروق</div>
+      <div class="login-note">الإصدار 1.3.0 — تصميم: زغدي فاروق</div>
     </div>
   </section>
 
@@ -154,9 +156,9 @@
  */
 window.BAYREN_CONFIG = Object.freeze({
   appName: 'مؤسسة بلقاسم عطية لأشغال البناء في مختلف مراحله',
-  version: '1.2.0',
+  version: '1.3.0',
   designer: 'زغدي فاروق',
-  apiUrl: 'https://script.google.com/macros/s/AKfycbyjraZvWxao8mgi_C1Uy3bnyrGQ2TP8Yde0BM-u5Lh3RKKgi9x2HiP05smxG4GqxeDv3Q/exec',
+  apiUrl: 'https://script.google.com/macros/s/AKfycbyjc0yuyMfbkEZ7neRv396kQIXc-kj_UrzHqCMYaSCeZX8ZUWdxjpS2yJb5B5s0sL0t/exec',
   requestTimeoutMs: 90000
 });
 
@@ -208,8 +210,9 @@ const App = (() => {
     ['suppliers','🚚','الموردون','إدارة الموردين','suppliers.read'],
     ['products','📦','المنتجات','الأصناف والأسعار والمخزون','products.read'],
     ['sales','🧾','المبيعات','أوامر البيع والفواتير','sales.read'],
-    ['purchases','🛒','المشتريات','أوامر الشراء والاستلام','purchases.read'],
-    ['inventory','🏬','المخزون','حركات المخزون والتسويات','inventory.read'],
+    ['purchases','🛒','المشتريات','شراء السلع والخدمات والمواد الأولية','purchases.read'],
+    ['production','🏗️','التصنيع والاستهلاك','تحويل المواد إلى منتج أو استهلاكها في المشاريع','inventory.read'],
+    ['inventory','🏬','المخزون','الأرصدة والتحويل بين الفروع والتسويات','inventory.read'],
     ['invoices','💳','المحاسبة','الفواتير والمدفوعات','accounting.read'],
     ['expenses','💸','المصاريف','تسجيل ومتابعة المصاريف','expenses.read'],
     ['employees','🧑‍💼','الموظفون','الموارد البشرية','hr.read'],
@@ -241,9 +244,9 @@ const App = (() => {
     },
     products: {
       table:'PRODUCTS', branchScoped:true, title:'المنتجات', icon:'📦', write:'products.write',
-      columns:[['branchId','الفرع'],['sku','SKU'],['name','المنتج'],['category','الفئة'],['salePrice','سعر البيع'],['costPrice','التكلفة'],['currentStock','المخزون'],['status','الحالة']],
+      columns:[['branchId','الفرع'],['sku','SKU'],['name','الصنف أو الخدمة'],['itemType','النوع'],['category','الفئة'],['salePrice','سعر البيع'],['costPrice','التكلفة'],['currentStock','المخزون'],['status','الحالة']],
       fields:[
-        ['sku','رمز SKU','text',true],['name','اسم المنتج','text',true],['category','الفئة','text'],['unit','الوحدة','text'],
+        ['sku','رمز SKU','text',true],['name','اسم الصنف أو الخدمة','text',true],['itemType','نوع الصنف','select',['GOODS','RAW_MATERIAL','FINISHED_PRODUCT','SERVICE']],['category','الفئة','text'],['unit','الوحدة','text'],
         ['costPrice','سعر التكلفة','number'],['salePrice','سعر البيع','number'],['taxRate','الضريبة %','number'],
         ['minStock','حد إعادة الطلب','number'],['currentStock','المخزون الافتتاحي','number'],['status','الحالة','select',['ACTIVE','INACTIVE']],
         ['notes','ملاحظات','textarea','full']
@@ -357,9 +360,19 @@ const App = (() => {
 
   function statusBadge(value) {
     const text = String(value || '');
-    const good = ['ACTIVE','PAID','DONE','RECEIVED','CONFIRMED','POSTED'].includes(text);
+    const good = ['ACTIVE','PAID','DONE','RECEIVED','CONFIRMED','POSTED','COMPLETED'].includes(text);
     const bad = ['INACTIVE','CANCELLED','OVERDUE'].includes(text);
     return `<span class="badge ${good ? 'good' : bad ? 'bad' : 'warn'}">${esc(text || '-')}</span>`;
+  }
+
+  function optionLabel(value) {
+    const labels = {
+      GOODS:'سلعة', RAW_MATERIAL:'مادة أولية', FINISHED_PRODUCT:'منتج مصنّع', SERVICE:'خدمة',
+      MANUFACTURE:'تصنيع منتج', PROJECT_CONSUMPTION:'استهلاك في مشروع',
+      TRANSFER_OUT:'تحويل صادر', TRANSFER_IN:'تحويل وارد', PRODUCTION_CONSUME:'استهلاك للتصنيع',
+      PRODUCTION_OUTPUT:'إنتاج منتج', PROJECT_USE:'استهلاك مشروع'
+    };
+    return labels[String(value || '')] || String(value || '');
   }
 
 
@@ -569,6 +582,7 @@ const App = (() => {
       if (MODULES[page]) return renderGeneric(page);
       if (page === 'sales') return renderTransactions('sales');
       if (page === 'purchases') return renderTransactions('purchases');
+      if (page === 'production') return renderProduction();
       if (page === 'inventory') return renderInventory();
       if (page === 'invoices') return renderInvoices();
       if (page === 'reports') return renderReports();
@@ -709,7 +723,8 @@ const App = (() => {
   function formatCell(key, value) {
     if (key === 'branchId') return esc(branchName(value));
     if (key === 'branchIds') return esc(assignedBranchNames(value));
-    if (['total','subtotal','tax','paid','due','amount','balance','salePrice','costPrice','salary','budget','spent','sales','purchases','expenses','cashIn','cashOut','estimatedResult'].includes(key)) return esc(money(value));
+    if (key === 'itemType' || key === 'operationType' || key === 'type') return esc(optionLabel(value));
+    if (['total','subtotal','tax','paid','due','amount','balance','salePrice','costPrice','salary','budget','spent','sales','purchases','expenses','cashIn','cashOut','estimatedResult','totalMaterialCost'].includes(key)) return esc(money(value));
     if (key === 'status') return statusBadge(value);
     if (key === 'progress') return `${esc(value || 0)}%`;
     return esc(value || '-');
@@ -759,7 +774,7 @@ const App = (() => {
       const selected = String(value || '').split(',').map(x => x.trim()).filter(Boolean);
       control = `<div class="check-grid">${state.branches.map(branch => `<label class="check-option"><input type="checkbox" name="${name}" value="${esc(branch.id)}" ${selected.includes(branch.id) || String(value || '') === '*' ? 'checked' : ''}><span>${esc(branch.name)}</span></label>`).join('')}</div>`;
     } else if (type === 'select') {
-      const options = (arg || []).map(option => `<option value="${esc(option)}" ${String(value || '') === option ? 'selected' : ''}>${esc(option)}</option>`).join('');
+      const options = (arg || []).map(option => `<option value="${esc(option)}" ${String(value || '') === option ? 'selected' : ''}>${esc(optionLabel(option))}</option>`).join('');
       control = `<select name="${name}" ${required}>${options}</select>`;
     } else if (type === 'textarea') {
       control = `<textarea name="${name}">${esc(value || '')}</textarea>`;
@@ -830,13 +845,17 @@ const App = (() => {
 
   function addLine(kind) {
     const isSale = kind === 'sales';
-    const products = state.cache.PRODUCTS || [];
+    const products = (state.cache.PRODUCTS || []).filter(product => {
+      if (String(product.status || 'ACTIVE').toUpperCase() === 'INACTIVE') return false;
+      if (!isSale) return true;
+      return String(product.itemType || 'GOODS').toUpperCase() !== 'RAW_MATERIAL';
+    });
     const id = ++state.lineSeq;
     const body = document.getElementById('lineBody');
     const row = document.createElement('tr');
     row.dataset.id = id;
     row.innerHTML = `
-      <td><select class="line-product" required onchange="App.productChanged(this,'${kind}')"><option value="">— اختر —</option>${products.filter(p => p.status !== 'INACTIVE').map(p => `<option value="${p.id}">${esc(p.sku)} — ${esc(p.name)} (${esc(p.currentStock || 0)})</option>`).join('')}</select></td>
+      <td><select class="line-product" required onchange="App.productChanged(this,'${kind}')"><option value="">— اختر —</option>${products.map(p => `<option value="${p.id}">${esc(p.sku)} — ${esc(p.name)} — ${esc(optionLabel(p.itemType || 'GOODS'))}${String(p.itemType || '').toUpperCase() === 'SERVICE' ? '' : ` (${esc(p.currentStock || 0)})`}</option>`).join('')}</select></td>
       <td><input class="line-qty" type="number" min="0.01" step="0.01" value="1" oninput="App.recalcLines()"></td>
       <td><input class="line-price" type="number" min="0" step="0.01" value="0" oninput="App.recalcLines()"></td>
       <td><input class="line-tax" type="number" min="0" step="0.01" value="0" oninput="App.recalcLines()"></td>
@@ -902,24 +921,184 @@ const App = (() => {
     } catch (error) { toast(error.message, 'error'); }
   }
 
+  async function renderProduction() {
+    const orders = await loadTable('PRODUCTION_ORDERS', { force: true });
+    document.getElementById('content').innerHTML = `
+      <div class="page-actions">
+        <input id="productionSearch" class="search" placeholder="بحث في عمليات التصنيع والاستهلاك...">
+        <div class="action-group">
+          ${has('inventory.write') ? '<button class="btn primary" onclick="App.openProduction(\'MANUFACTURE\')">🏭 تصنيع منتج</button><button class="btn secondary" onclick="App.openProduction(\'PROJECT_CONSUMPTION\')">🏗️ استهلاك في مشروع</button>' : ''}
+          <button class="btn ghost" onclick="App.exportRows('PRODUCTION_ORDERS')">⇩ CSV</button>
+        </div>
+      </div>
+      <div class="panel"><div id="productionTable">${tableHtml(orders,[['branchId','الفرع'],['number','الرقم'],['date','التاريخ'],['operationType','العملية'],['projectName','المشروع'],['outputName','المنتج المصنّع'],['outputQty','الكمية المنتجة'],['totalMaterialCost','تكلفة المواد'],['status','الحالة']])}</div></div>`;
+    document.getElementById('productionSearch').addEventListener('input', event => {
+      const q = event.target.value.toLowerCase();
+      const filtered = orders.filter(row => Object.values(row).some(value => String(value || '').toLowerCase().includes(q)));
+      document.getElementById('productionTable').innerHTML = tableHtml(filtered,[['branchId','الفرع'],['number','الرقم'],['date','التاريخ'],['operationType','العملية'],['projectName','المشروع'],['outputName','المنتج المصنّع'],['outputQty','الكمية المنتجة'],['totalMaterialCost','تكلفة المواد'],['status','الحالة']]);
+    });
+  }
+
+  async function openProduction(mode) {
+    if (!requireSpecificBranch()) return;
+    const products = await loadTable('PRODUCTS', { force: true });
+    const projects = mode === 'PROJECT_CONSUMPTION' ? await loadTable('PROJECTS', { force: true }) : [];
+    const outputs = products.filter(product => String(product.itemType || '').toUpperCase() === 'FINISHED_PRODUCT' && String(product.status || 'ACTIVE').toUpperCase() !== 'INACTIVE');
+    const materials = products.filter(product => {
+      const type = String(product.itemType || 'GOODS').toUpperCase();
+      return type !== 'SERVICE' && type !== 'FINISHED_PRODUCT' && String(product.status || 'ACTIVE').toUpperCase() !== 'INACTIVE';
+    });
+    if (!materials.length) {
+      toast('أضف مواد أولية أو سلعًا مخزنية أولًا.', 'error');
+      return;
+    }
+    if (mode === 'MANUFACTURE' && !outputs.length) {
+      toast('أضف صنفًا من نوع «منتج مصنّع» أولًا.', 'error');
+      return;
+    }
+    state.cache.PRODUCTION_MATERIALS = materials;
+    state.lineSeq = 0;
+    const isManufacture = mode === 'MANUFACTURE';
+    openModal(isManufacture ? 'تصنيع منتج نهائي' : 'استهلاك مواد في مشروع بناء', `
+      <form id="productionForm">
+        <div class="form-grid">
+          <div class="field"><label>التاريخ</label><input id="productionDate" type="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+          <div class="field"><label>المخزن</label><input id="productionWarehouse" value="MAIN"></div>
+          ${isManufacture ? `<div class="field"><label>المنتج المصنّع</label><select id="outputProductId" required><option value="">— اختر —</option>${outputs.map(p => `<option value="${p.id}">${esc(p.sku)} — ${esc(p.name)} (${esc(p.currentStock || 0)})</option>`).join('')}</select></div><div class="field"><label>الكمية المنتجة</label><input id="outputQty" type="number" min="0.01" step="0.01" value="1" required></div>` : `<div class="field full"><label>المشروع</label><select id="productionProjectId" required><option value="">— اختر —</option>${projects.filter(p => !['DONE','CANCELLED'].includes(String(p.status || '').toUpperCase())).map(p => `<option value="${p.id}">${esc(p.code || '')} — ${esc(p.name)}</option>`).join('')}</select></div>`}
+          <div class="field full"><label>ملاحظات</label><textarea id="productionNotes" placeholder="مثال: مواد مستعملة لإنجاز أشغال الخرسانة أو تصنيع عنصر جاهز"></textarea></div>
+        </div>
+        <div class="page-actions" style="margin-top:16px"><strong>المواد المستهلكة</strong><button class="btn secondary small" type="button" onclick="App.addMaterialLine()">＋ إضافة مادة</button></div>
+        <div class="line-items"><table><thead><tr><th>المادة</th><th>الرصيد</th><th>الكمية المستهلكة</th><th>التكلفة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="productionLineBody"></tbody></table></div>
+        <div class="totals-box"><div class="grand"><span>إجمالي تكلفة المواد</span><span id="productionMaterialTotal">0 دج</span></div></div>
+        <div class="form-actions"><button class="btn primary" type="submit">تأكيد العملية</button><button class="btn ghost" type="button" onclick="App.closeModal()">إلغاء</button></div>
+      </form>`);
+    document.getElementById('productionForm').dataset.mode = mode;
+    addMaterialLine();
+    document.getElementById('productionForm').addEventListener('submit', submitProduction);
+  }
+
+  function addMaterialLine() {
+    const materials = state.cache.PRODUCTION_MATERIALS || [];
+    const body = document.getElementById('productionLineBody');
+    if (!body) return;
+    const row = document.createElement('tr');
+    row.dataset.id = ++state.lineSeq;
+    row.innerHTML = `
+      <td><select class="material-product" required onchange="App.materialChanged(this)"><option value="">— اختر —</option>${materials.map(p => `<option value="${p.id}">${esc(p.sku)} — ${esc(p.name)} — ${esc(optionLabel(p.itemType || 'GOODS'))}</option>`).join('')}</select></td>
+      <td class="material-stock">0</td>
+      <td><input class="material-qty" type="number" min="0.01" step="0.01" value="1" oninput="App.recalcMaterials()" required></td>
+      <td class="material-cost">0</td>
+      <td class="material-total">0</td>
+      <td><button class="btn danger small" type="button" onclick="this.closest('tr').remove();App.recalcMaterials()">✕</button></td>`;
+    body.appendChild(row);
+    recalcMaterials();
+  }
+
+  function materialChanged(select) {
+    const product = (state.cache.PRODUCTION_MATERIALS || []).find(item => item.id === select.value);
+    const row = select.closest('tr');
+    row.querySelector('.material-stock').textContent = product ? String(product.currentStock || 0) : '0';
+    row.querySelector('.material-cost').textContent = product ? money(product.costPrice || 0) : money(0);
+    recalcMaterials();
+  }
+
+  function recalcMaterials() {
+    let total = 0;
+    document.querySelectorAll('#productionLineBody tr').forEach(row => {
+      const productId = row.querySelector('.material-product').value;
+      const product = (state.cache.PRODUCTION_MATERIALS || []).find(item => item.id === productId);
+      const qty = Number(row.querySelector('.material-qty').value || 0);
+      const lineTotal = qty * Number(product ? product.costPrice || 0 : 0);
+      total += lineTotal;
+      row.querySelector('.material-total').textContent = money(lineTotal);
+    });
+    const host = document.getElementById('productionMaterialTotal');
+    if (host) host.textContent = money(total);
+  }
+
+  async function submitProduction(event) {
+    event.preventDefault();
+    const mode = event.target.dataset.mode;
+    const items = [...document.querySelectorAll('#productionLineBody tr')].map(row => ({
+      productId: row.querySelector('.material-product').value,
+      qty: Number(row.querySelector('.material-qty').value || 0)
+    }));
+    const payload = {
+      date: document.getElementById('productionDate').value,
+      warehouse: document.getElementById('productionWarehouse').value,
+      notes: document.getElementById('productionNotes').value,
+      items
+    };
+    if (mode === 'MANUFACTURE') {
+      payload.finishedProductId = document.getElementById('outputProductId').value;
+      payload.outputQty = Number(document.getElementById('outputQty').value || 0);
+    } else {
+      payload.projectId = document.getElementById('productionProjectId').value;
+    }
+    try {
+      await api(mode === 'MANUFACTURE' ? 'createProduction' : 'consumeMaterials', payload);
+      state.cache = {};
+      state.dashboard = await api('dashboard', {}, false);
+      closeModal();
+      toast(mode === 'MANUFACTURE' ? 'تم خصم المواد وإضافة المنتج المصنّع إلى المخزون.' : 'تم خصم المواد وإضافة تكلفتها إلى المشروع.');
+      navigate('production');
+    } catch (error) { toast(error.message, 'error'); }
+  }
+
   async function renderInventory() {
     const products = await loadTable('PRODUCTS', { force: true });
     const moves = await loadTable('STOCK_MOVES', { force: true });
+    const stockedProducts = products.filter(product => String(product.itemType || 'GOODS').toUpperCase() !== 'SERVICE');
     document.getElementById('content').innerHTML = `
-      <div class="page-actions"><input id="inventorySearch" class="search" placeholder="بحث عن منتج..."><div class="action-group">${has('inventory.write') ? '<button class="btn primary" onclick="App.openStockAdjustment()">± تسوية مخزون</button>' : ''}<button class="btn ghost" onclick="App.exportRows('STOCK_MOVES')">⇩ CSV</button></div></div>
+      <div class="page-actions"><input id="inventorySearch" class="search" placeholder="بحث عن سلعة أو مادة..."><div class="action-group">${has('inventory.write') ? '<button class="btn primary" onclick="App.openStockTransfer()">⇄ تحويل بين الفروع</button><button class="btn secondary" onclick="App.openStockAdjustment()">± تسوية مخزون</button>' : ''}<button class="btn ghost" onclick="App.exportRows('STOCK_MOVES')">⇩ CSV</button></div></div>
       <div class="grid-2">
-        <div class="panel"><div class="panel-header"><h3>أرصدة المنتجات</h3></div><div id="stockProducts">${tableHtml(products,[['branchId','الفرع'],['sku','SKU'],['name','المنتج'],['currentStock','المتوفر'],['minStock','حد الطلب'],['costPrice','التكلفة']])}</div></div>
-        <div class="panel"><div class="panel-header"><h3>آخر الحركات</h3></div>${tableHtml(moves.slice(0,100),[['branchId','الفرع'],['date','التاريخ'],['productName','المنتج'],['type','الحركة'],['qty','الكمية'],['warehouse','المخزن']])}</div>
+        <div class="panel"><div class="panel-header"><h3>أرصدة السلع والمواد والمنتجات المصنّعة</h3></div><div id="stockProducts">${tableHtml(stockedProducts,[['branchId','الفرع'],['sku','SKU'],['name','الصنف'],['itemType','النوع'],['currentStock','المتوفر'],['minStock','حد الطلب'],['costPrice','التكلفة']])}</div></div>
+        <div class="panel"><div class="panel-header"><h3>آخر الحركات</h3></div>${tableHtml(moves.slice(0,100),[['branchId','الفرع'],['date','التاريخ'],['productName','الصنف'],['type','الحركة'],['qty','الكمية'],['warehouse','المخزن']])}</div>
       </div>`;
     document.getElementById('inventorySearch').addEventListener('input', event => {
       const q = event.target.value.toLowerCase();
-      document.getElementById('stockProducts').innerHTML = tableHtml(products.filter(p => `${p.sku} ${p.name}`.toLowerCase().includes(q)),[['branchId','الفرع'],['sku','SKU'],['name','المنتج'],['currentStock','المتوفر'],['minStock','حد الطلب'],['costPrice','التكلفة']]);
+      document.getElementById('stockProducts').innerHTML = tableHtml(stockedProducts.filter(p => `${p.sku} ${p.name} ${p.itemType}`.toLowerCase().includes(q)),[['branchId','الفرع'],['sku','SKU'],['name','الصنف'],['itemType','النوع'],['currentStock','المتوفر'],['minStock','حد الطلب'],['costPrice','التكلفة']]);
+    });
+  }
+
+  async function openStockTransfer() {
+    if (!requireSpecificBranch()) return;
+    const products = (await loadTable('PRODUCTS', { force: true })).filter(product => String(product.itemType || 'GOODS').toUpperCase() !== 'SERVICE' && String(product.status || 'ACTIVE').toUpperCase() !== 'INACTIVE');
+    const destinations = state.branches.filter(branch => String(branch.id) !== String(state.branchId));
+    if (!destinations.length) {
+      toast('لا يوجد فرع آخر مسموح لك بالوصول إليه.', 'error');
+      return;
+    }
+    openModal('تحويل مخزون بين الفروع', `
+      <form id="transferForm" class="form-grid">
+        <div class="field full"><label>الصنف من الفرع الحالي</label><select name="productId" required><option value="">— اختر —</option>${products.map(p => `<option value="${p.id}">${esc(p.sku)} — ${esc(p.name)} — ${esc(optionLabel(p.itemType || 'GOODS'))} (${esc(p.currentStock || 0)})</option>`).join('')}</select></div>
+        <div class="field"><label>من الفرع</label><input value="${esc(branchName(state.branchId))}" disabled></div>
+        <div class="field"><label>إلى الفرع</label><select name="toBranchId" required><option value="">— اختر —</option>${destinations.map(branch => `<option value="${branch.id}">${esc(branch.name)} — ${esc(branch.code)}</option>`).join('')}</select></div>
+        <div class="field"><label>الكمية</label><input name="qty" type="number" min="0.01" step="0.01" required></div>
+        <div class="field"><label>التاريخ</label><input name="date" type="date" value="${new Date().toISOString().slice(0,10)}" required></div>
+        <div class="field"><label>مخزن الإرسال</label><input name="fromWarehouse" value="MAIN"></div>
+        <div class="field"><label>مخزن الاستلام</label><input name="toWarehouse" value="MAIN"></div>
+        <div class="field full"><label>ملاحظات</label><textarea name="notes"></textarea></div>
+        <div class="form-actions full"><button class="btn primary">تنفيذ التحويل</button><button class="btn ghost" type="button" onclick="App.closeModal()">إلغاء</button></div>
+      </form>`);
+    document.getElementById('transferForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(event.target).entries());
+      data.fromBranchId = state.branchId;
+      data.qty = Number(data.qty || 0);
+      try {
+        await api('transferStock', data);
+        state.cache = {};
+        closeModal();
+        toast('تم تحويل الصنف وتسجيل حركة صادرة وواردة.');
+        navigate('inventory');
+      } catch (error) { toast(error.message, 'error'); }
     });
   }
 
   async function openStockAdjustment() {
     if (!requireSpecificBranch()) return;
-    const products = await loadTable('PRODUCTS');
+    const products = (await loadTable('PRODUCTS')).filter(product => String(product.itemType || 'GOODS').toUpperCase() !== 'SERVICE');
     openModal('تسوية المخزون', `
       <form id="stockForm" class="form-grid">
         <div class="field full"><label>المنتج</label><select name="productId" required><option value="">— اختر —</option>${products.map(p => `<option value="${p.id}">${esc(p.sku)} — ${esc(p.name)} (${esc(p.currentStock || 0)})</option>`).join('')}</select></div>
@@ -1099,7 +1278,8 @@ const App = (() => {
 
   return {
     init, login, logout, navigate, refreshCurrent, openRecordForm, removeRecord,
-    openTransaction, addLine, productChanged, recalcLines, openStockAdjustment,
+    openTransaction, addLine, productChanged, recalcLines, openStockTransfer, openStockAdjustment,
+    renderProduction, openProduction, addMaterialLine, materialChanged, recalcMaterials, submitProduction,
     openPayment, makePdf, openModal, closeModal, exportRows, exportCsv, exportAnnualResults,
     openProfile, installShortcut
   };
