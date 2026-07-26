@@ -158,7 +158,7 @@ window.BAYREN_CONFIG = Object.freeze({
   appName: 'مؤسسة بلقاسم عطية لأشغال البناء في مختلف مراحله',
   version: '1.4.0',
   designer: 'زغدي فاروق',
-  apiUrl: 'https://script.google.com/macros/s/AKfycbxi6Uk0dsHVwhGfpJ7bTQjaexHsvT44FXdufegJn_QO8fcB0o4lDUnNi6ugF7npNo-6/exec',
+  apiUrl: 'https://script.google.com/macros/s/AKfycby2VXkA4wC5cMDXv4uQ3Ee7bOdglQ51hMvITffTVxBsiLRSYARD6LDPrI2ZOJIoI7xPFQ/exec',
   requestTimeoutMs: 90000
 });
 
@@ -210,12 +210,10 @@ const App = (() => {
     ['expenses','📤','المصاريف','المصاريف حسب الفئة والحساب','expenses.read'],
     ['treasury','🏦','البنوك والصندوق','أرصدة BADR وBEA والصندوق والتحويلات','finance.read'],
     ['financialAccounts','⚙️','إعداد الحسابات','تسمية الحسابات والأرصدة الافتتاحية','finance.read'],
-    ['suppliers','🚚','الموردون','إدارة الموردين','suppliers.read'],
+    ['customers','👥','الزبائن','إدارة بيانات الزبائن','customers.read'],
+    ['suppliers','🚚','الموردون','إدارة بيانات الموردين','suppliers.read'],
     ['products','📦','الأصناف والمخزون','السلع والمواد والمنتجات والخدمات','products.read'],
-    ['purchases','🛒','المشتريات','شراء السلع والخدمات والمواد الأولية','purchases.read'],
-    ['production','🏗️','التصنيع والاستهلاك','تحويل المواد إلى منتج أو استهلاكها في المشاريع','inventory.read'],
     ['inventory','🏬','حركة المخزون','الأرصدة والتحويل بين الفروع والتسويات','inventory.read'],
-    ['projects','📌','المشاريع','مشاريع ووضعيات الأشغال','projects.read'],
     ['reports','📊','النتائج السنوية','الأرباح التقديرية وحركة الحسابات','reports.read'],
     ['fiscalYears','🔒','السنوات المحاسبية','فتح ومتابعة وإغلاق السنوات','finance.read'],
     ['branches','🏢','الفروع','إدارة فروع المؤسسة','branches.read'],
@@ -224,21 +222,19 @@ const App = (() => {
 
   const MODULES = {
     customers: {
-      table:'CUSTOMERS', branchScoped:true, title:'العملاء', icon:'👥', write:'customers.write',
-      columns:[['branchId','الفرع'],['code','الرمز'],['name','الاسم'],['phone','الهاتف'],['email','البريد'],['balance','الرصيد'],['status','الحالة']],
+      table:'CUSTOMERS', branchScoped:true, title:'الزبائن', icon:'👥', write:'customers.write',
+      columns:[['branchId','الفرع'],['name','التسمية'],['phone','رقم الهاتف'],['nif','NIF'],['nis','NIS'],['commercialRegister','السجل التجاري'],['articleNumber','رقم المادة']],
       fields:[
-        ['code','الرمز','text'],['name','الاسم الكامل','text',true],['phone','الهاتف','text'],['email','البريد الإلكتروني','email'],
-        ['address','العنوان','text'],['taxId','الرقم الجبائي','text'],['balance','الرصيد الافتتاحي','number'],
-        ['status','الحالة','select',['ACTIVE','INACTIVE']],['notes','ملاحظات','textarea','full']
+        ['name','التسمية','text',true],['phone','رقم الهاتف','text'],['nif','NIF','text'],['nis','NIS','text'],
+        ['commercialRegister','السجل التجاري','text'],['articleNumber','رقم المادة','text']
       ]
     },
     suppliers: {
       table:'SUPPLIERS', branchScoped:true, title:'الموردون', icon:'🚚', write:'suppliers.write',
-      columns:[['branchId','الفرع'],['code','الرمز'],['name','الاسم'],['phone','الهاتف'],['email','البريد'],['balance','الرصيد'],['status','الحالة']],
+      columns:[['branchId','الفرع'],['name','التسمية'],['phone','رقم الهاتف'],['nif','NIF'],['nis','NIS'],['commercialRegister','السجل التجاري'],['articleNumber','رقم المادة']],
       fields:[
-        ['code','الرمز','text'],['name','الاسم','text',true],['phone','الهاتف','text'],['email','البريد الإلكتروني','email'],
-        ['address','العنوان','text'],['taxId','الرقم الجبائي','text'],['balance','الرصيد الافتتاحي','number'],
-        ['status','الحالة','select',['ACTIVE','INACTIVE']],['notes','ملاحظات','textarea','full']
+        ['name','التسمية','text',true],['phone','رقم الهاتف','text'],['nif','NIF','text'],['nis','NIS','text'],
+        ['commercialRegister','السجل التجاري','text'],['articleNumber','رقم المادة','text']
       ]
     },
     products: {
@@ -253,21 +249,21 @@ const App = (() => {
     },
     revenues: {
       table:'REVENUES', branchScoped:true, title:'الإيرادات', icon:'📥', write:'finance.write',
-      columns:[['branchId','الفرع'],['date','التاريخ'],['fiscalYear','السنة'],['situationNumber','وضعية الأشغال'],['projectName','المشروع'],['clientName','صاحب المشروع'],['amount','المبلغ'],['accountName','الحساب'],['status','الحالة']],
+      columns:[['branchId','الفرع'],['date','التاريخ'],['fiscalYear','السنة'],['situationNumber','وضعية الأشغال'],['description','الوصف'],['amount','المبلغ'],['accountName','الحساب'],['status','الحالة'],['notes','ملاحظات']],
       fields:[
-        ['date','التاريخ','date',true],['situationNumber','رقم وضعية الأشغال','text',true],['projectId','المشروع','lookup','PROJECTS'],['clientName','صاحب المشروع أو العميل','text'],
-        ['description','وصف الأشغال','textarea','full'],['amount','المبلغ','number',true],['accountId','الحساب المستلم','lookup','FINANCIAL_ACCOUNTS'],
-        ['status','الحالة','select',['POSTED','DRAFT','CANCELLED']],['notes','ملاحظات','textarea','full']
+        ['date','التاريخ','date',true],['situationNumber','رقم وضعية الأشغال','text',true],
+        ['description','وصف الإيراد أو الأشغال','textarea','full'],['amount','المبلغ','number',true],['accountId','الحساب المستلم','lookup','FINANCIAL_ACCOUNTS'],
+        ['status','الحالة','select',['POSTED','DRAFT','CANCELLED']],['notes','ملاحظات (يمكن كتابة اسم المشروع أو أي تفاصيل إضافية)','textarea','full']
       ]
     },
     expenses: {
       table:'EXPENSES', branchScoped:true, title:'المصاريف', icon:'📤', write:'expenses.write',
-      columns:[['branchId','الفرع'],['date','التاريخ'],['fiscalYear','السنة'],['category','الفئة'],['description','الوصف'],['projectName','المشروع'],['amount','المبلغ'],['accountName','الحساب'],['status','الحالة']],
+      columns:[['branchId','الفرع'],['date','التاريخ'],['fiscalYear','السنة'],['category','الفئة'],['description','الوصف'],['amount','المبلغ'],['accountName','الحساب'],['status','الحالة'],['notes','ملاحظات']],
       fields:[
         ['date','التاريخ','date',true],['category','فئة المصروف','select',['RENT','INTERNAL_SUBCONTRACTING','GOODS','RAW_MATERIALS','SERVICES','SALARIES','SOCIAL_SECURITY','TAXES','OTHER']],
-        ['documentNumber','رقم الوثيقة أو الفاتورة','text'],['projectId','المشروع','lookup','PROJECTS'],['description','وصف المصروف','textarea','full'],
+        ['documentNumber','رقم الوثيقة أو الفاتورة','text'],['description','وصف المصروف','textarea','full'],
         ['amount','المبلغ','number',true],['accountId','الحساب المدفوع منه','lookup','FINANCIAL_ACCOUNTS'],['status','الحالة','select',['POSTED','DRAFT','CANCELLED']],
-        ['notes','ملاحظات','textarea','full']
+        ['notes','ملاحظات (يمكن كتابة اسم المشروع أو المورد أو تفاصيل الشراء)','textarea','full']
       ]
     },
     financialAccounts: {
@@ -287,21 +283,6 @@ const App = (() => {
         ['status','الحالة','select',['ACTIVE','INACTIVE','ON_LEAVE']],['notes','ملاحظات','textarea','full']
       ]
     },
-    projects: {
-      table:'PROJECTS', branchScoped:true, title:'المشاريع', icon:'📌', write:'projects.write',
-      columns:[['branchId','الفرع'],['code','الرمز'],['name','المشروع'],['customerName','العميل'],['manager','المسؤول'],['status','الحالة'],['budget','الميزانية'],['progress','التقدم %']],
-      fields:[
-        ['code','رمز المشروع','text'],['name','اسم المشروع','text',true],['customerId','العميل','lookup','CUSTOMERS'],['manager','المسؤول','text'],
-        ['status','الحالة','select',['PLANNED','ACTIVE','ON_HOLD','DONE','CANCELLED']],['startDate','تاريخ البداية','date'],['endDate','تاريخ النهاية','date'],
-        ['budget','الميزانية','number'],['spent','المصروف','number'],['progress','نسبة التقدم','number'],['notes','ملاحظات','textarea','full']
-      ],
-      beforeSave(record){
-        const customer = (state.cache.CUSTOMERS || []).find(x => x.id === record.customerId);
-        record.customerName = customer ? customer.name : '';
-        return record;
-      }
-    },
-
     branches: {
       table:'BRANCHES', title:'الفروع', icon:'🏢', write:'branches.write',
       columns:[['code','الرمز'],['name','اسم الفرع'],['location','الموقع'],['manager','المسؤول'],['phone','الهاتف'],['status','الحالة']],
@@ -604,8 +585,6 @@ const App = (() => {
       if (page === 'treasury') return renderTreasury();
       if (page === 'fiscalYears') return renderFiscalYears();
       if (page === 'sales') return renderTransactions('sales');
-      if (page === 'purchases') return renderTransactions('purchases');
-      if (page === 'production') return renderProduction();
       if (page === 'inventory') return renderInventory();
       if (page === 'invoices') return renderInvoices();
       if (page === 'reports') return renderReports();
@@ -692,7 +671,7 @@ const App = (() => {
       </div>
       <div class="panel" style="margin-top:16px"><div class="panel-header"><h3>أرصدة الحسابات الحالية</h3><button class="btn ghost small" onclick="App.navigate('treasury')">البنوك والصندوق</button></div>${tableHtml(d.accountBalances || [],[['name','الحساب'],['openingBalance','الرصيد الافتتاحي'],['yearIn','إيرادات السنة'],['yearOut','مصاريف السنة'],['currentBalance','الرصيد الحالي']])}</div>
       <div class="grid-2">
-        <div class="panel"><div class="panel-header"><h3>آخر الإيرادات</h3><button class="btn ghost small" onclick="App.navigate('revenues')">عرض الكل</button></div>${tableHtml(d.recentRevenues || [],[['branchId','الفرع'],['date','التاريخ'],['situationNumber','الوضعية'],['projectName','المشروع'],['amount','المبلغ'],['accountName','الحساب']])}</div>
+        <div class="panel"><div class="panel-header"><h3>آخر الإيرادات</h3><button class="btn ghost small" onclick="App.navigate('revenues')">عرض الكل</button></div>${tableHtml(d.recentRevenues || [],[['branchId','الفرع'],['date','التاريخ'],['situationNumber','الوضعية'],['description','الوصف'],['amount','المبلغ'],['accountName','الحساب']])}</div>
         <div class="panel"><div class="panel-header"><h3>آخر المصاريف</h3><button class="btn ghost small" onclick="App.navigate('expenses')">عرض الكل</button></div>${tableHtml(d.recentExpenses || [],[['branchId','الفرع'],['date','التاريخ'],['category','الفئة'],['description','الوصف'],['amount','المبلغ'],['accountName','الحساب']])}</div>
       </div>`;
   }
@@ -938,130 +917,6 @@ const App = (() => {
       closeModal();
       toast(isSale ? 'تم إنشاء البيع والفاتورة.' : 'تم إنشاء الشراء وفاتورة المورد.');
       navigate(kind);
-    } catch (error) { toast(error.message, 'error'); }
-  }
-
-  async function renderProduction() {
-    const orders = await loadTable('PRODUCTION_ORDERS', { force: true });
-    document.getElementById('content').innerHTML = `
-      <div class="page-actions">
-        <input id="productionSearch" class="search" placeholder="بحث في عمليات التصنيع والاستهلاك...">
-        <div class="action-group">
-          ${has('inventory.write') ? '<button class="btn primary" onclick="App.openProduction(\'MANUFACTURE\')">🏭 تصنيع منتج</button><button class="btn secondary" onclick="App.openProduction(\'PROJECT_CONSUMPTION\')">🏗️ استهلاك في مشروع</button>' : ''}
-          <button class="btn ghost" onclick="App.exportRows('PRODUCTION_ORDERS')">⇩ CSV</button>
-        </div>
-      </div>
-      <div class="panel"><div id="productionTable">${tableHtml(orders,[['branchId','الفرع'],['number','الرقم'],['date','التاريخ'],['operationType','العملية'],['projectName','المشروع'],['outputName','المنتج المصنّع'],['outputQty','الكمية المنتجة'],['totalMaterialCost','تكلفة المواد'],['status','الحالة']])}</div></div>`;
-    document.getElementById('productionSearch').addEventListener('input', event => {
-      const q = event.target.value.toLowerCase();
-      const filtered = orders.filter(row => Object.values(row).some(value => String(value || '').toLowerCase().includes(q)));
-      document.getElementById('productionTable').innerHTML = tableHtml(filtered,[['branchId','الفرع'],['number','الرقم'],['date','التاريخ'],['operationType','العملية'],['projectName','المشروع'],['outputName','المنتج المصنّع'],['outputQty','الكمية المنتجة'],['totalMaterialCost','تكلفة المواد'],['status','الحالة']]);
-    });
-  }
-
-  async function openProduction(mode) {
-    if (!requireSpecificBranch()) return;
-    const products = await loadTable('PRODUCTS', { force: true });
-    const projects = mode === 'PROJECT_CONSUMPTION' ? await loadTable('PROJECTS', { force: true }) : [];
-    const outputs = products.filter(product => String(product.itemType || '').toUpperCase() === 'FINISHED_PRODUCT' && String(product.status || 'ACTIVE').toUpperCase() !== 'INACTIVE');
-    const materials = products.filter(product => {
-      const type = String(product.itemType || 'GOODS').toUpperCase();
-      return type !== 'SERVICE' && type !== 'FINISHED_PRODUCT' && String(product.status || 'ACTIVE').toUpperCase() !== 'INACTIVE';
-    });
-    if (!materials.length) {
-      toast('أضف مواد أولية أو سلعًا مخزنية أولًا.', 'error');
-      return;
-    }
-    if (mode === 'MANUFACTURE' && !outputs.length) {
-      toast('أضف صنفًا من نوع «منتج مصنّع» أولًا.', 'error');
-      return;
-    }
-    state.cache.PRODUCTION_MATERIALS = materials;
-    state.lineSeq = 0;
-    const isManufacture = mode === 'MANUFACTURE';
-    openModal(isManufacture ? 'تصنيع منتج نهائي' : 'استهلاك مواد في مشروع بناء', `
-      <form id="productionForm">
-        <div class="form-grid">
-          <div class="field"><label>التاريخ</label><input id="productionDate" type="date" value="${new Date().toISOString().slice(0,10)}" required></div>
-          <div class="field"><label>المخزن</label><input id="productionWarehouse" value="MAIN"></div>
-          ${isManufacture ? `<div class="field"><label>المنتج المصنّع</label><select id="outputProductId" required><option value="">— اختر —</option>${outputs.map(p => `<option value="${p.id}">${esc(p.sku)} — ${esc(p.name)} (${esc(p.currentStock || 0)})</option>`).join('')}</select></div><div class="field"><label>الكمية المنتجة</label><input id="outputQty" type="number" min="0.01" step="0.01" value="1" required></div>` : `<div class="field full"><label>المشروع</label><select id="productionProjectId" required><option value="">— اختر —</option>${projects.filter(p => !['DONE','CANCELLED'].includes(String(p.status || '').toUpperCase())).map(p => `<option value="${p.id}">${esc(p.code || '')} — ${esc(p.name)}</option>`).join('')}</select></div>`}
-          <div class="field full"><label>ملاحظات</label><textarea id="productionNotes" placeholder="مثال: مواد مستعملة لإنجاز أشغال الخرسانة أو تصنيع عنصر جاهز"></textarea></div>
-        </div>
-        <div class="page-actions" style="margin-top:16px"><strong>المواد المستهلكة</strong><button class="btn secondary small" type="button" onclick="App.addMaterialLine()">＋ إضافة مادة</button></div>
-        <div class="line-items"><table><thead><tr><th>المادة</th><th>الرصيد</th><th>الكمية المستهلكة</th><th>التكلفة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="productionLineBody"></tbody></table></div>
-        <div class="totals-box"><div class="grand"><span>إجمالي تكلفة المواد</span><span id="productionMaterialTotal">0 دج</span></div></div>
-        <div class="form-actions"><button class="btn primary" type="submit">تأكيد العملية</button><button class="btn ghost" type="button" onclick="App.closeModal()">إلغاء</button></div>
-      </form>`);
-    document.getElementById('productionForm').dataset.mode = mode;
-    addMaterialLine();
-    document.getElementById('productionForm').addEventListener('submit', submitProduction);
-  }
-
-  function addMaterialLine() {
-    const materials = state.cache.PRODUCTION_MATERIALS || [];
-    const body = document.getElementById('productionLineBody');
-    if (!body) return;
-    const row = document.createElement('tr');
-    row.dataset.id = ++state.lineSeq;
-    row.innerHTML = `
-      <td><select class="material-product" required onchange="App.materialChanged(this)"><option value="">— اختر —</option>${materials.map(p => `<option value="${p.id}">${esc(p.sku)} — ${esc(p.name)} — ${esc(optionLabel(p.itemType || 'GOODS'))}</option>`).join('')}</select></td>
-      <td class="material-stock">0</td>
-      <td><input class="material-qty" type="number" min="0.01" step="0.01" value="1" oninput="App.recalcMaterials()" required></td>
-      <td class="material-cost">0</td>
-      <td class="material-total">0</td>
-      <td><button class="btn danger small" type="button" onclick="this.closest('tr').remove();App.recalcMaterials()">✕</button></td>`;
-    body.appendChild(row);
-    recalcMaterials();
-  }
-
-  function materialChanged(select) {
-    const product = (state.cache.PRODUCTION_MATERIALS || []).find(item => item.id === select.value);
-    const row = select.closest('tr');
-    row.querySelector('.material-stock').textContent = product ? String(product.currentStock || 0) : '0';
-    row.querySelector('.material-cost').textContent = product ? money(product.costPrice || 0) : money(0);
-    recalcMaterials();
-  }
-
-  function recalcMaterials() {
-    let total = 0;
-    document.querySelectorAll('#productionLineBody tr').forEach(row => {
-      const productId = row.querySelector('.material-product').value;
-      const product = (state.cache.PRODUCTION_MATERIALS || []).find(item => item.id === productId);
-      const qty = Number(row.querySelector('.material-qty').value || 0);
-      const lineTotal = qty * Number(product ? product.costPrice || 0 : 0);
-      total += lineTotal;
-      row.querySelector('.material-total').textContent = money(lineTotal);
-    });
-    const host = document.getElementById('productionMaterialTotal');
-    if (host) host.textContent = money(total);
-  }
-
-  async function submitProduction(event) {
-    event.preventDefault();
-    const mode = event.target.dataset.mode;
-    const items = [...document.querySelectorAll('#productionLineBody tr')].map(row => ({
-      productId: row.querySelector('.material-product').value,
-      qty: Number(row.querySelector('.material-qty').value || 0)
-    }));
-    const payload = {
-      date: document.getElementById('productionDate').value,
-      warehouse: document.getElementById('productionWarehouse').value,
-      notes: document.getElementById('productionNotes').value,
-      items
-    };
-    if (mode === 'MANUFACTURE') {
-      payload.finishedProductId = document.getElementById('outputProductId').value;
-      payload.outputQty = Number(document.getElementById('outputQty').value || 0);
-    } else {
-      payload.projectId = document.getElementById('productionProjectId').value;
-    }
-    try {
-      await api(mode === 'MANUFACTURE' ? 'createProduction' : 'consumeMaterials', payload);
-      state.cache = {};
-      state.dashboard = await api('dashboard', {}, false);
-      closeModal();
-      toast(mode === 'MANUFACTURE' ? 'تم خصم المواد وإضافة المنتج المصنّع إلى المخزون.' : 'تم خصم المواد وإضافة تكلفتها إلى المشروع.');
-      navigate('production');
     } catch (error) { toast(error.message, 'error'); }
   }
 
@@ -1322,7 +1177,6 @@ const App = (() => {
   return {
     init, login, logout, navigate, refreshCurrent, openRecordForm, removeRecord,
     openTransaction, addLine, productChanged, recalcLines, openStockTransfer, openStockAdjustment,
-    renderProduction, openProduction, addMaterialLine, materialChanged, recalcMaterials, submitProduction,
     openPayment, makePdf, renderTreasury, openTreasuryTransfer, renderFiscalYears, closeFiscalYear, openModal, closeModal, exportRows, exportCsv, exportAnnualResults,
     openProfile, installShortcut
   };
