@@ -657,7 +657,7 @@ const App = (() => {
     const m = d.metrics || {};
     const profitLabel = Number(m.annualProfit || 0) >= 0 ? 'الربح السنوي التقديري' : 'العجز السنوي التقديري';
     document.getElementById('content').innerHTML = `
-      <div class="panel" style="margin-bottom:16px"><div class="panel-body"><strong>السنة المحاسبية: ${esc((d.fiscalYear || {}).year || new Date().getFullYear())}</strong> — ${statusBadge((d.fiscalYear || {}).status || 'OPEN')}<p class="muted">هذا النظام حاسبة تسيير داخلية لمعرفة الأرباح وحركة السيولة والمخزون، وليس برنامج محاسبة قانونيًا.</p></div></div>
+      <div class="panel" style="margin-bottom:16px"><div class="panel-body"><strong>السنة المحاسبية: ${esc((d.fiscalYear || {}).year || new Date().getFullYear())}</strong> — ${statusBadge((d.fiscalYear || {}).status || 'OPEN')}<p class="muted"></p></div></div>
       <div class="cards">
         ${metric('📥','إيرادات السنة',money(m.annualRevenue),'وضعيات الأشغال المرحلة')}
         ${metric('📤','مصاريف السنة',money(m.annualExpenses),'جميع فئات المصاريف')}
