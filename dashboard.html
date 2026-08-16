@@ -5,6 +5,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -104,7 +105,12 @@
     .print-header-spacer{width:27mm}
     .print-only{display:block!important}
     .print-filter-hidden{display:none!important}
-    .print-footer{display:block!important;position:fixed;left:0;right:0;bottom:-9mm;text-align:center;border-top:1px solid #cfd8e2;padding-top:2mm;font-size:8pt;color:#657180;background:#fff}
+    .print-footer{display:block!important;position:fixed;left:0;right:0;bottom:0;text-align:center;border-top:1px solid #cfd8e2;padding-top:2mm;font-size:8pt;color:#657180;background:#fff}
+    .print-total-row{display:table-row-group!important}
+    .print-total-row th{background:#eef2f6!important;font-weight:800!important;border:1px solid #9eabb8!important;padding:2.2mm 1.8mm!important}
+    .print-expenses .data-table th[data-key="status"],
+    .print-expenses .data-table td[data-key="status"]{display:none!important}
+    .print-expenses .data-table .print-total-row th[data-key="status"]{display:none!important}
     .cards,.report-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3mm!important;margin-bottom:4mm!important}
     .metric-card,.report-card{box-shadow:none!important;border:1px solid #cbd5df!important;border-radius:3mm!important;padding:3.5mm!important;background:#fff!important;content-visibility:visible!important;contain:none!important;break-inside:avoid-page;page-break-inside:avoid}
     .metric-card h3,.report-card strong{font-size:12pt!important;margin-top:2mm!important;color:#111!important}
@@ -117,7 +123,7 @@
     .table-wrap{overflow:visible!important;width:100%!important}
     .data-table,.line-items table{width:100%!important;min-width:0!important;border-collapse:collapse!important;table-layout:auto!important}
     .data-table thead{display:table-header-group!important}
-    .data-table tfoot{display:table-footer-group!important}
+    .data-table tfoot{display:table-row-group!important}
     .data-table tr{break-inside:avoid-page;page-break-inside:avoid}
     .data-table th{background:#e8edf2!important;color:#111!important;font-size:8.5pt!important;font-weight:800!important;padding:2.2mm 1.8mm!important;border:1px solid #9eabb8!important;white-space:normal!important;vertical-align:middle!important}
     .data-table td{font-size:8.3pt!important;padding:2mm 1.8mm!important;border:1px solid #b9c3cd!important;vertical-align:top!important;word-break:break-word!important;background:#fff!important}
@@ -936,9 +942,15 @@ const App = (() => {
 
   function tableHtml(rows, columns, actions = false, moduleKey = '') {
     if (!rows || !rows.length) return '<div class="empty">لا توجد بيانات بعد.</div>';
-    return `<div class="table-wrap"><table class="data-table"><thead><tr>${columns.map(c => `<th>${esc(c[1])}</th>`).join('')}${actions ? '<th class="no-print">إجراءات</th>' : ''}</tr></thead><tbody>
-      ${rows.map(row => `<tr data-date="${esc(row.date || '')}">${columns.map(c => `<td>${formatCell(c[0], row[c[0]])}</td>`).join('')}${actions ? `<td class="no-print"><div class="row-actions"><button class="btn secondary small" onclick="App.openRecordForm('${moduleKey}','${row.id}')">تعديل</button><button class="btn danger small" onclick="App.removeRecord('${moduleKey}','${row.id}')">حذف</button></div></td>` : ''}</tr>`).join('')}
-    </tbody></table></div>`;
+
+    const totalKeys = new Set(['amount','total','subtotal','tax','paid','due','revenue','expenses','estimatedResult','cashIn','cashOut','receivables','payables','currentBalance','openingBalance','yearIn','yearOut','yearTransferIn','yearTransferOut']);
+    const totalColumns = columns.filter(c => totalKeys.has(c[0]));
+    const hasTotals = totalColumns.length > 0;
+    const totalValue = key => rows.reduce((sum, row) => sum + Number(row[key] || 0), 0);
+
+    return `<div class="table-wrap"><table class="data-table"><thead><tr>${columns.map(c => `<th data-key="${esc(c[0])}">${esc(c[1])}</th>`).join('')}${actions ? '<th class="no-print">إجراءات</th>' : ''}</tr></thead><tbody>
+      ${rows.map(row => `<tr data-date="${esc(row.date || '')}">${columns.map(c => `<td data-key="${esc(c[0])}">${formatCell(c[0], row[c[0]])}</td>`).join('')}${actions ? `<td class="no-print"><div class="row-actions"><button class="btn secondary small" onclick="App.openRecordForm('${moduleKey}','${row.id}')">تعديل</button><button class="btn danger small" onclick="App.removeRecord('${moduleKey}','${row.id}')">حذف</button></div></td>` : ''}</tr>`).join('')}
+    </tbody>${hasTotals ? `<tfoot class="print-total-row"><tr>${columns.map((c,i) => i === 0 ? '<th>المجموع</th>' : totalKeys.has(c[0]) ? `<th data-key="${esc(c[0])}">${esc(money(totalValue(c[0])))}</th>` : '<th></th>').join('')}${actions ? '<th class="no-print"></th>' : ''}</tr></tfoot>` : ''}</table></div>`;
   }
 
   function formatCell(key, value) {
@@ -1443,8 +1455,14 @@ const App = (() => {
     }
 
     const originalTitle = document.title;
+    const isExpensesPrint = /مصاريف|المصاريف/.test(resolvedTitle);
+    if (isExpensesPrint) document.body.classList.add('print-expenses');
     document.title = `${resolvedTitle}${resolvedYear ? ' - ' + resolvedYear : ''} - مؤسسة بلقاسم عطية`;
-    window.addEventListener('afterprint', () => { document.title = originalTitle; filteredRows.forEach(row => row.classList.remove('print-filter-hidden')); }, { once:true });
+    window.addEventListener('afterprint', () => {
+      document.title = originalTitle;
+      filteredRows.forEach(row => row.classList.remove('print-filter-hidden'));
+      document.body.classList.remove('print-expenses');
+    }, { once:true });
     window.print();
   }
 
