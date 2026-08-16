@@ -88,7 +88,7 @@
 
   /* ===== Professional A4 printing (HTML only) ===== */
   .print-header,.print-footer,.print-only{display:none}
-  @page{size:A4 portrait;margin:12mm 10mm 14mm}
+  @page{size:A4 portrait;margin:12mm 10mm 25mm}
   @media print{
     html,body{background:#fff!important;color:#111!important;direction:rtl!important;font-family:Arial,"Tahoma",sans-serif!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     body{overflow:visible!important;font-size:10pt!important}
@@ -103,7 +103,7 @@
     .print-meta{grid-column:1/-1;display:flex;justify-content:center;gap:8mm;flex-wrap:wrap;margin-top:1mm;padding-top:2.5mm;border-top:1px solid #cfd8e2;font-size:9.5pt;color:#333}
     .print-meta strong{color:#111}
     .print-header-spacer{width:27mm}
-    .print-only{display:block!important}
+    .print-only{display:block!important;padding-bottom:10mm!important}
     .print-filter-hidden{display:none!important}
     .print-footer{display:block!important;position:fixed;left:0;right:0;bottom:0;text-align:center;border-top:1px solid #cfd8e2;padding-top:2mm;font-size:8pt;color:#657180;background:#fff}
     .print-total-row{display:table-row-group!important}
